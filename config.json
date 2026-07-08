@@ -86,7 +86,8 @@
     "Clamshell machine": {
       "label": "翻版機",
       "items": [
-        "升降板功能"
+        "升降板功能",
+        "遠端控制"
       ]
     }
   }
