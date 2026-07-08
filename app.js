@@ -82,6 +82,7 @@
   let exportTimestampBackup = null;
   let resizeTimer = null;
   let signatureMode = false;
+  let signatureEditorKey = SIGNATURE_KEYS[0];
 
   function pad2(value) {
     return String(value).padStart(2, '0');
@@ -305,6 +306,33 @@
 
     wrapper.appendChild(headingBlock);
     return wrapper;
+  }
+
+  function createActionButton(labelText, action, className, dataset = {}) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = labelText;
+    button.className = className;
+    button.dataset.action = action;
+    Object.entries(dataset).forEach(([key, value]) => {
+      button.dataset[key] = value;
+    });
+    return button;
+  }
+
+  function getPreferredSignatureKey(signatures = state && state.signatures ? state.signatures : {}) {
+    return SIGNATURE_KEYS.find((signatureKey) => !String(signatures[signatureKey] || '')) || SIGNATURE_KEYS[0];
+  }
+
+  function setSignatureEditorKey(signatureKey) {
+    if (!SIGNATURE_KEYS.includes(signatureKey)) {
+      return;
+    }
+
+    signatureEditorKey = signatureKey;
+    if (signatureMode) {
+      renderAll();
+    }
   }
 
   function createFieldWrapper(field) {
@@ -543,7 +571,7 @@
     container.appendChild(field);
   }
 
-  function createSignatureCard(signatureKey, titleText) {
+  function createSignatureCard(signatureKey, titleText, noteText = '支援滑鼠與觸控簽名。') {
     const card = document.createElement('article');
     card.className = 'signature-card';
     card.dataset.signatureKey = signatureKey;
@@ -557,7 +585,7 @@
     title.textContent = titleText;
     const note = document.createElement('p');
     note.className = 'signature-card__note';
-    note.textContent = '支援滑鼠與觸控簽名。';
+    note.textContent = noteText;
     titleBlock.appendChild(title);
     titleBlock.appendChild(note);
 
@@ -602,33 +630,45 @@
     container.appendChild(grid);
   }
 
-  function buildSignatureSectionModel(isSignatureMode = signatureMode, signatures = state && state.signatures ? state.signatures : {}) {
+  function buildSignatureSectionModel(
+    isSignatureMode = signatureMode,
+    activeSignatureKey = signatureEditorKey,
+    signatures = state && state.signatures ? state.signatures : {}
+  ) {
     const mode = isSignatureMode ? 'editor' : 'summary';
     const signerTitles = {
-      tester: '皜祈岫鈭箏簽名',
-      owner: '璆凋蜓嚗?港誨銵?簽名',
+      tester: '測試人員簽名',
+      owner: '業主／現場代表簽名',
     };
+    const signers = SIGNATURE_KEYS.map((signatureKey) => {
+      const dataUrl = String(signatures[signatureKey] || '');
+      return {
+        key: signatureKey,
+        title: signerTitles[signatureKey] || signatureKey,
+        statusLabel: dataUrl ? '已簽名' : '尚未簽名',
+        hasPreview: Boolean(dataUrl),
+        previewDataUrl: dataUrl,
+      };
+    });
+    const preferredSignatureKey = getPreferredSignatureKey(signatures);
+    const editorSignatureKey = SIGNATURE_KEYS.includes(activeSignatureKey) ? activeSignatureKey : preferredSignatureKey;
+    const activeSigner = signers.find((signer) => signer.key === editorSignatureKey) || signers[0] || null;
 
     return {
       mode,
       title: mode === 'editor' ? '獨立簽名畫面' : '簽名總覽',
       intro:
         mode === 'editor'
-          ? '只會顯示簽名工作區，簽完按儲存並返回。'
+          ? '一次只顯示一位簽名人，完成後可切換下一位。'
           : '先看簽名摘要，確認沒問題後再進入簽名畫面。',
       primaryActionLabel: mode === 'editor' ? '儲存並返回' : '進入簽名畫面',
       secondaryActionLabel: mode === 'editor' ? '返回總覽' : '',
       clearAllLabel: mode === 'editor' ? '清除所有簽名' : '',
-      signers: SIGNATURE_KEYS.map((signatureKey) => {
-        const dataUrl = String(signatures[signatureKey] || '');
-        return {
-          key: signatureKey,
-          title: signerTitles[signatureKey] || signatureKey,
-          statusLabel: dataUrl ? '已簽名' : '尚未簽名',
-          hasPreview: Boolean(dataUrl),
-          previewDataUrl: dataUrl,
-        };
-      }),
+      editorHint: '一次只顯示一位簽名人，畫完再切換下一位。',
+      editorCardHint: '請在下方畫布直接簽名。',
+      signers,
+      activeSignerKey: editorSignatureKey,
+      activeSigner,
     };
   }
 
@@ -671,12 +711,24 @@
     return card;
   }
 
+  function createSignatureSwitcherButton(signer, isActive) {
+    const button = createActionButton(
+      `${signer.title} · ${signer.statusLabel}`,
+      'switch-signature-key',
+      `secondary signature-signer-switcher__button${isActive ? ' is-active' : ''}`,
+      { signatureKey: signer.key }
+    );
+    button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+    return button;
+  }
+
   function renderSignatureSectionV2() {
     const container = elements.signatureSection;
     container.innerHTML = '';
 
     const model = buildSignatureSectionModel();
     container.dataset.mode = model.mode;
+    container.dataset.activeSignatureKey = model.activeSignerKey;
 
     container.appendChild(createSectionTitle(model.title, model.mode === 'editor' ? '簽名時只保留簽名畫面，避免誤按其他欄位。' : '先看摘要，確認簽名狀態後再進入獨立簽名畫面。'));
 
@@ -710,18 +762,34 @@
     toolbar.appendChild(createActionButton(model.clearAllLabel, 'clear-all-signatures', 'secondary'));
     container.appendChild(toolbar);
 
+    const switcher = document.createElement('div');
+    switcher.className = 'signature-signer-switcher';
+    model.signers.forEach((signer) => {
+      switcher.appendChild(createSignatureSwitcherButton(signer, signer.key === model.activeSignerKey));
+    });
+    container.appendChild(switcher);
+
+    const switcherHint = document.createElement('p');
+    switcherHint.className = 'signature-switcher-help';
+    switcherHint.textContent = model.editorHint;
+    container.appendChild(switcherHint);
+
     const workspace = document.createElement('div');
     workspace.className = 'signature-workspace';
     workspace.id = 'signature-workspace';
 
-    workspace.appendChild(createSignatureCard('tester', '皜祈岫鈭箏簽名'));
-    workspace.appendChild(createSignatureCard('owner', '璆凋蜓嚗?港誨銵?簽名'));
+    if (model.activeSigner) {
+      workspace.appendChild(createSignatureCard(model.activeSigner.key, model.activeSigner.title, model.editorCardHint));
+    }
 
     container.appendChild(workspace);
   }
 
   function setSignatureMode(nextMode) {
     signatureMode = Boolean(nextMode);
+    if (signatureMode) {
+      signatureEditorKey = getPreferredSignatureKey();
+    }
     if (document.body && document.body.classList) {
       document.body.classList.toggle('signature-mode', signatureMode);
     }
@@ -889,12 +957,18 @@
       return;
     }
 
+    if (action === 'switch-signature-key') {
+      setSignatureEditorKey(button.dataset.signatureKey);
+      return;
+    }
+
     if (action === 'clear-all-signatures') {
       state.signatures = {
         tester: '',
         owner: '',
       };
       saveState();
+      signatureEditorKey = getPreferredSignatureKey();
       renderAll();
       return;
     }
@@ -985,10 +1059,8 @@
 
     state.signatures[signatureKey] = '';
     saveState();
-    const canvas = elements.signatureSection.querySelector(`canvas[data-signature-key="${signatureKey}"]`);
-    if (canvas) {
-      clearCanvas(canvas);
-    }
+    signatureEditorKey = signatureKey;
+    renderAll();
   }
 
   function clearCanvas(canvas) {
@@ -1313,6 +1385,7 @@
 
     state = createInitialState();
     signatureMode = false;
+    signatureEditorKey = SIGNATURE_KEYS[0];
     if (document.body && document.body.classList) {
       document.body.classList.remove('signature-mode');
     }

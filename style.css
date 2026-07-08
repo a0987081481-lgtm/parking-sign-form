@@ -665,10 +665,15 @@ button.small {
   color: var(--muted);
 }
 
-.signature-summary-grid,
-.signature-workspace {
+.signature-summary-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.signature-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
 }
 
@@ -787,6 +792,33 @@ button.small {
   font-size: 0.88rem;
 }
 
+.signature-signer-switcher {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 12px 0 8px;
+}
+
+.signature-signer-switcher__button {
+  flex: 1 1 220px;
+  text-align: left;
+  line-height: 1.35;
+}
+
+.signature-signer-switcher__button.is-active,
+.signature-signer-switcher__button[aria-pressed='true'] {
+  background: #183a63;
+  border-color: #183a63;
+  color: #fff;
+  box-shadow: 0 10px 20px rgba(24, 58, 99, 0.18);
+}
+
+.signature-switcher-help {
+  margin: 0 0 14px;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
 .signature-canvas {
   display: block;
   width: 100%;
@@ -872,7 +904,7 @@ body.signature-mode .signature-card {
 }
 
 body.signature-mode .signature-canvas {
-  height: min(38vh, 340px);
+  height: min(44vh, 420px);
 }
 
 .form-footer {
