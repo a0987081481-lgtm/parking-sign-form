@@ -2,7 +2,7 @@
   const root = typeof globalThis !== 'undefined' ? globalThis : window;
 
   root.MAINTENANCE_SETTINGS = {
-    apiBaseUrl: '',
+    apiBaseUrl: 'https://parking-sign-form-maintenance.a0987081481.workers.dev',
     owner: 'a0987081481-lgtm',
     repo: 'parking-sign-form',
     branch: 'main',
