@@ -23,10 +23,10 @@ test('public page cache-busts local assets so GitHub Pages does not keep stale s
   const html = fs.readFileSync(indexPath, 'utf8');
 
   const expectedFragments = [
-    'href="style.css?v=20260708-3"',
-    'src="config.js?v=20260708-3"',
-    'src="config-loader.js?v=20260708-3"',
-    'src="app.js?v=20260708-3"',
+    'href="style.css?v=20260708-4"',
+    'src="config.js?v=20260708-4"',
+    'src="config-loader.js?v=20260708-4"',
+    'src="app.js?v=20260708-4"',
   ];
 
   for (const fragment of expectedFragments) {
@@ -39,14 +39,14 @@ test('admin page cache-busts local assets so maintenance UI also refreshes', () 
   const html = fs.readFileSync(adminPath, 'utf8');
 
   const expectedFragments = [
-    'href="style.css?v=20260708-3"',
-    'src="config.js?v=20260708-3"',
-    'src="maintenance-settings.js?v=20260708-3"',
-    'src="config-loader.js?v=20260708-3"',
-    'src="github-contents.js?v=20260708-3"',
-    'src="maintenance-sync.js?v=20260708-3"',
-    'src="admin-config-form.js?v=20260708-3"',
-    'src="admin.js?v=20260708-3"',
+    'href="style.css?v=20260708-4"',
+    'src="config.js?v=20260708-4"',
+    'src="maintenance-settings.js?v=20260708-4"',
+    'src="config-loader.js?v=20260708-4"',
+    'src="github-contents.js?v=20260708-4"',
+    'src="maintenance-sync.js?v=20260708-4"',
+    'src="admin-config-form.js?v=20260708-4"',
+    'src="admin.js?v=20260708-4"',
   ];
 
   for (const fragment of expectedFragments) {
