@@ -6,7 +6,7 @@ function isPlainObject(value) {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
-function normalizeEnv(env = {}) {
+export function normalizeEnv(env = {}) {
   return {
     token: trimText(env.GITHUB_TOKEN),
     owner: trimText(env.GITHUB_REPO_OWNER),
@@ -16,7 +16,7 @@ function normalizeEnv(env = {}) {
   };
 }
 
-function encodeUtf8Base64(text) {
+export function encodeUtf8Base64(text) {
   const value = String(text ?? '');
 
   if (typeof Buffer !== 'undefined') {
@@ -35,7 +35,7 @@ function encodeUtf8Base64(text) {
   throw new Error('Base64 encoder is not available.');
 }
 
-function decodeUtf8Base64(text) {
+export function decodeUtf8Base64(text) {
   const value = String(text ?? '');
 
   if (typeof Buffer !== 'undefined') {
@@ -54,7 +54,7 @@ function decodeUtf8Base64(text) {
   throw new Error('Base64 decoder is not available.');
 }
 
-function buildContentsUrl(env, includeBranch = true) {
+export function buildContentsUrl(env, includeBranch = true) {
   const safeOwner = encodeURIComponent(env.owner);
   const safeRepo = encodeURIComponent(env.repo);
   const safePath = trimText(env.path)
@@ -71,9 +71,10 @@ function buildContentsUrl(env, includeBranch = true) {
   return `${base}?ref=${encodeURIComponent(env.branch)}`;
 }
 
-function buildGithubHeaders(token) {
+export function buildGithubHeaders(token) {
   const headers = {
     Accept: 'application/vnd.github+json',
+    'User-Agent': 'parking-sign-form',
     'X-GitHub-Api-Version': '2022-11-28',
   };
 
@@ -84,7 +85,7 @@ function buildGithubHeaders(token) {
   return headers;
 }
 
-function buildCorsHeaders() {
+export function buildCorsHeaders() {
   return {
     'access-control-allow-origin': '*',
     'access-control-allow-methods': 'GET,PUT,OPTIONS',
@@ -93,7 +94,7 @@ function buildCorsHeaders() {
   };
 }
 
-function jsonResponse(body, init = {}) {
+export function jsonResponse(body, init = {}) {
   return new Response(JSON.stringify(body), {
     status: init.status || 200,
     headers: {
@@ -104,7 +105,7 @@ function jsonResponse(body, init = {}) {
   });
 }
 
-async function decodeGithubConfig(env, fetchImpl) {
+export async function decodeGithubConfig(env, fetchImpl) {
   const githubEnv = normalizeEnv(env);
   if (!githubEnv.owner || !githubEnv.repo || !githubEnv.path) {
     const error = new Error('GitHub repo settings are incomplete.');
@@ -135,7 +136,7 @@ async function decodeGithubConfig(env, fetchImpl) {
   };
 }
 
-async function saveGithubConfig(env, config, message, sha, fetchImpl) {
+export async function saveGithubConfig(env, config, message, sha, fetchImpl) {
   const githubEnv = normalizeEnv(env);
   if (!githubEnv.owner || !githubEnv.repo || !githubEnv.path) {
     const error = new Error('GitHub repo settings are incomplete.');
@@ -171,7 +172,7 @@ async function saveGithubConfig(env, config, message, sha, fetchImpl) {
   return response.json();
 }
 
-async function handleMaintenanceRequest(request, env = {}, fetchImpl = fetch) {
+export async function handleMaintenanceRequest(request, env = {}, fetchImpl = fetch) {
   const method = request.method.toUpperCase();
   const pathname = new URL(request.url).pathname;
 
@@ -224,22 +225,8 @@ async function handleMaintenanceRequest(request, env = {}, fetchImpl = fetch) {
   );
 }
 
-const MaintenanceWorker = {
+export default {
   fetch(request, env, ctx) {
     return handleMaintenanceRequest(request, env, ctx && typeof ctx.fetch === 'function' ? ctx.fetch : fetch);
   },
-  buildCorsHeaders,
-  decodeGithubConfig,
-  encodeUtf8Base64,
-  handleMaintenanceRequest,
-  normalizeEnv,
-  saveGithubConfig,
 };
-
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = MaintenanceWorker;
-}
-
-if (typeof globalThis !== 'undefined') {
-  globalThis.MaintenanceWorker = MaintenanceWorker;
-}

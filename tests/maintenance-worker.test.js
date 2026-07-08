@@ -1,34 +1,42 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
+const path = require('node:path');
+const { pathToFileURL } = require('node:url');
 
-const {
-  buildCorsHeaders,
-  handleMaintenanceRequest,
-  normalizeEnv,
-} = require('../worker/maintenance-worker');
+async function loadWorker() {
+  const workerUrl = pathToFileURL(path.join(__dirname, '..', 'worker', 'maintenance-worker.mjs')).href;
+  return import(workerUrl);
+}
 
 function encodeBase64(text) {
   return Buffer.from(String(text), 'utf8').toString('base64');
 }
 
 test('normalizeEnv 會套用預設分支與路徑', () => {
-  const result = normalizeEnv({
-    GITHUB_REPO_OWNER: ' parking-team ',
-    GITHUB_REPO_NAME: ' sign-form ',
-    GITHUB_REPO_BRANCH: ' ',
-    GITHUB_CONFIG_PATH: ' ',
-  });
+  return loadWorker().then(({ normalizeEnv }) => {
+    const result = normalizeEnv({
+      GITHUB_REPO_OWNER: ' parking-team ',
+      GITHUB_REPO_NAME: ' sign-form ',
+      GITHUB_REPO_BRANCH: ' ',
+      GITHUB_CONFIG_PATH: ' ',
+    });
 
-  assert.equal(result.owner, 'parking-team');
-  assert.equal(result.repo, 'sign-form');
-  assert.equal(result.branch, 'main');
-  assert.equal(result.path, 'config.json');
+    assert.equal(result.owner, 'parking-team');
+    assert.equal(result.repo, 'sign-form');
+    assert.equal(result.branch, 'main');
+    assert.equal(result.path, 'config.json');
+  });
 });
 
 test('GET /config 不需要呼叫端驗證，會直接回傳雲端設定', async () => {
+  const {
+    handleMaintenanceRequest,
+  } = await loadWorker();
+
   const fetchStub = async (url, init) => {
     assert.equal(url, 'https://api.github.com/repos/parking-team/sign-form/contents/config.json?ref=main');
     assert.equal(init.headers.Accept, 'application/vnd.github+json');
+    assert.equal(init.headers['User-Agent'], 'parking-sign-form');
     assert.equal(init.headers.Authorization, undefined);
 
     return {
@@ -68,6 +76,10 @@ test('GET /config 不需要呼叫端驗證，會直接回傳雲端設定', async
 });
 
 test('PUT /config 會更新 GitHub，且不需要來自呼叫端的驗證資訊', async () => {
+  const {
+    handleMaintenanceRequest,
+  } = await loadWorker();
+
   const calls = [];
   const fetchStub = async (url, init = {}) => {
     calls.push({ url, init });
@@ -92,6 +104,7 @@ test('PUT /config 會更新 GitHub，且不需要來自呼叫端的驗證資訊'
     assert.equal(url, 'https://api.github.com/repos/parking-team/sign-form/contents/config.json');
     assert.equal(init.method, 'PUT');
     assert.equal(init.headers.Accept, 'application/vnd.github+json');
+    assert.equal(init.headers['User-Agent'], 'parking-sign-form');
     assert.equal(init.headers.Authorization, undefined);
 
     const body = JSON.parse(init.body);
@@ -143,6 +156,11 @@ test('PUT /config 會更新 GitHub，且不需要來自呼叫端的驗證資訊'
 });
 
 test('OPTIONS /config 會回傳 CORS preflight', async () => {
+  const {
+    buildCorsHeaders,
+    handleMaintenanceRequest,
+  } = await loadWorker();
+
   const response = await handleMaintenanceRequest(
     new Request('https://example.com/config', { method: 'OPTIONS' }),
     {},

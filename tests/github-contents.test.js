@@ -32,8 +32,10 @@ test('buildContentsUpdatePayload encodes config json and sha', () => {
 });
 
 test('fetchCurrentContents decodes an existing config file from GitHub', async () => {
-  const fetchStub = async (url) => {
+  const fetchStub = async (url, init) => {
     assert.equal(url, 'https://api.github.com/repos/parking-team/sign-form/contents/config.json?ref=main');
+    assert.equal(init.headers.Accept, 'application/vnd.github+json');
+    assert.equal(init.headers['User-Agent'], 'parking-sign-form');
     return {
       ok: true,
       status: 200,

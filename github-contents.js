@@ -56,6 +56,7 @@
   function buildAuthHeaders(token) {
     const headers = {
       Accept: 'application/vnd.github+json',
+      'User-Agent': 'parking-sign-form',
       'X-GitHub-Api-Version': '2022-11-28',
     };
 
