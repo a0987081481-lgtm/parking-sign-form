@@ -1,7 +1,7 @@
 (function () {
   const root = typeof globalThis !== 'undefined' ? globalThis : window;
   const ConfigLoader = root.ConfigLoader || {};
-  const GitHubContents = root.GitHubContents || {};
+  const MaintenanceSync = root.MaintenanceSync || {};
   const AdminConfigForm = root.AdminConfigForm || {};
 
   const normalizePublicConfig =
@@ -17,18 +17,54 @@
           };
         };
 
-  const fetchCurrentContents =
-    typeof GitHubContents.fetchCurrentContents === 'function'
-      ? GitHubContents.fetchCurrentContents
-      : async () => {
-          throw new Error('GitHubContents helper is not available.');
+  const FALLBACK_SETTINGS = {
+    apiBaseUrl: '',
+    owner: '',
+    repo: '',
+    branch: 'main',
+    path: 'config.json',
+    token: '',
+    rememberToken: false,
+  };
+
+  const normalizeMaintenanceSettings =
+    typeof MaintenanceSync.normalizeMaintenanceSettings === 'function'
+      ? MaintenanceSync.normalizeMaintenanceSettings
+      : (input) => {
+          const source = input && typeof input === 'object' ? input : {};
+          return {
+            apiBaseUrl: String(source.apiBaseUrl ?? '').trim(),
+            owner: String(source.owner ?? '').trim(),
+            repo: String(source.repo ?? '').trim(),
+            branch: String(source.branch ?? '').trim() || FALLBACK_SETTINGS.branch,
+            path: String(source.path ?? '').trim() || FALLBACK_SETTINGS.path,
+            token: String(source.token ?? '').trim(),
+            rememberToken: Boolean(source.rememberToken),
+          };
         };
 
-  const saveContentsToGitHub =
-    typeof GitHubContents.saveContentsToGitHub === 'function'
-      ? GitHubContents.saveContentsToGitHub
+  const isWorkerMode =
+    typeof MaintenanceSync.isWorkerMode === 'function'
+      ? MaintenanceSync.isWorkerMode
+      : (settings) => Boolean(String(settings && settings.apiBaseUrl ? settings.apiBaseUrl : '').trim());
+
+  const buildWorkerConfigUrl =
+    typeof MaintenanceSync.buildWorkerConfigUrl === 'function'
+      ? MaintenanceSync.buildWorkerConfigUrl
+      : (apiBaseUrl) => `${String(apiBaseUrl ?? '').trim().replace(/\/+$/, '')}/config`;
+
+  const fetchCurrentContents =
+    typeof MaintenanceSync.fetchCurrentContents === 'function'
+      ? MaintenanceSync.fetchCurrentContents
       : async () => {
-          throw new Error('GitHubContents helper is not available.');
+          throw new Error('MaintenanceSync helper is not available.');
+        };
+
+  const saveContentsToBackend =
+    typeof MaintenanceSync.saveContentsToBackend === 'function'
+      ? MaintenanceSync.saveContentsToBackend
+      : async () => {
+          throw new Error('MaintenanceSync helper is not available.');
         };
 
   const createFormState =
@@ -110,14 +146,7 @@
   });
 
   const SETTINGS_KEY = 'parking-sign-admin-settings-v1';
-  const DEFAULT_SETTINGS = {
-    owner: '',
-    repo: '',
-    branch: 'master',
-    path: 'config.json',
-    token: '',
-    rememberToken: false,
-  };
+  const DEFAULT_SETTINGS = normalizeMaintenanceSettings(root.MAINTENANCE_SETTINGS || FALLBACK_SETTINGS);
 
   let elements = {};
   let state = {
@@ -145,6 +174,9 @@
 
   function cacheElements() {
     elements = {
+      apiBaseUrl: document.getElementById('api-base-url'),
+      backendModePill: document.getElementById('backend-mode-pill'),
+      backendHint: document.getElementById('backend-hint'),
       owner: document.getElementById('repo-owner'),
       repo: document.getElementById('repo-name'),
       branch: document.getElementById('repo-branch'),
@@ -173,6 +205,22 @@
     elements.status.dataset.tone = tone;
   }
 
+  function updateBackendSummary(settings = state.settings || DEFAULT_SETTINGS) {
+    const normalized = normalizeMaintenanceSettings(settings);
+    const workerMode = isWorkerMode(normalized);
+
+    if (elements.backendModePill) {
+      elements.backendModePill.textContent = workerMode ? 'Worker 模式' : 'GitHub 直連';
+      elements.backendModePill.classList.toggle('field-pill--locked', !workerMode);
+    }
+
+    if (elements.backendHint) {
+      elements.backendHint.textContent = workerMode
+        ? `會透過 ${buildWorkerConfigUrl(normalized.apiBaseUrl)} 同步到所有人的公版頁面。`
+        : '目前還沒填 Worker API 網址，會退回直接連 GitHub；直連儲存需要 GitHub Token。';
+    }
+  }
+
   function loadSettings() {
     try {
       const raw = root.localStorage && root.localStorage.getItem(SETTINGS_KEY);
@@ -181,28 +229,31 @@
       }
 
       const parsed = JSON.parse(raw);
-      const next = { ...DEFAULT_SETTINGS };
-      next.owner = trimText(parsed.owner);
-      next.repo = trimText(parsed.repo);
-      next.branch = trimText(parsed.branch) || DEFAULT_SETTINGS.branch;
-      next.path = trimText(parsed.path) || DEFAULT_SETTINGS.path;
-      next.rememberToken = Boolean(parsed.rememberToken);
-      next.token = next.rememberToken ? trimText(parsed.token) : '';
-      return next;
+      return normalizeMaintenanceSettings({
+        ...DEFAULT_SETTINGS,
+        apiBaseUrl: trimText(parsed.apiBaseUrl) || DEFAULT_SETTINGS.apiBaseUrl,
+        owner: trimText(parsed.owner) || DEFAULT_SETTINGS.owner,
+        repo: trimText(parsed.repo) || DEFAULT_SETTINGS.repo,
+        branch: trimText(parsed.branch) || DEFAULT_SETTINGS.branch,
+        path: trimText(parsed.path) || DEFAULT_SETTINGS.path,
+        rememberToken: Boolean(parsed.rememberToken),
+        token: Boolean(parsed.rememberToken) ? trimText(parsed.token) : '',
+      });
     } catch {
       return { ...DEFAULT_SETTINGS };
     }
   }
 
   function saveSettingsToStorage() {
-    const payload = {
+    const payload = normalizeMaintenanceSettings({
+      apiBaseUrl: trimText(elements.apiBaseUrl.value),
       owner: trimText(elements.owner.value),
       repo: trimText(elements.repo.value),
       branch: trimText(elements.branch.value) || DEFAULT_SETTINGS.branch,
       path: trimText(elements.path.value) || DEFAULT_SETTINGS.path,
       rememberToken: Boolean(elements.rememberToken.checked),
       token: Boolean(elements.rememberToken.checked) ? trimText(elements.token.value) : '',
-    };
+    });
 
     try {
       root.localStorage && root.localStorage.setItem(SETTINGS_KEY, JSON.stringify(payload));
@@ -211,20 +262,24 @@
     }
 
     state.settings = payload;
+    updateBackendSummary(payload);
     return payload;
   }
 
   function applySettingsToForm(settings) {
+    elements.apiBaseUrl.value = settings.apiBaseUrl || '';
     elements.owner.value = settings.owner;
     elements.repo.value = settings.repo;
     elements.branch.value = settings.branch;
     elements.path.value = settings.path;
     elements.token.value = settings.token;
     elements.rememberToken.checked = settings.rememberToken;
+    updateBackendSummary(settings);
   }
 
   function getSettingsFromForm() {
     return {
+      apiBaseUrl: trimText(elements.apiBaseUrl.value),
       owner: trimText(elements.owner.value),
       repo: trimText(elements.repo.value),
       branch: trimText(elements.branch.value) || DEFAULT_SETTINGS.branch,
@@ -611,7 +666,7 @@
       return;
     }
 
-    if (['repo-owner', 'repo-name', 'repo-branch', 'config-path', 'github-token', 'remember-token'].includes(target.id)) {
+    if (['api-base-url', 'repo-owner', 'repo-name', 'repo-branch', 'config-path', 'github-token', 'remember-token'].includes(target.id)) {
       saveSettingsToStorage();
       return;
     }
@@ -654,7 +709,7 @@
       return;
     }
 
-    if (['repo-owner', 'repo-name', 'repo-branch', 'config-path', 'github-token', 'remember-token'].includes(target.id)) {
+    if (['api-base-url', 'repo-owner', 'repo-name', 'repo-branch', 'config-path', 'github-token', 'remember-token'].includes(target.id)) {
       saveSettingsToStorage();
     }
   }
@@ -730,13 +785,16 @@
 
   async function loadFromGitHub(showStatus = true) {
     const settings = saveSettingsToStorage();
-    if (!settings.owner || !settings.repo || !settings.path) {
-      updateStatus('請先填好 Repo Owner、Repo Name 和 config.json 路徑。', 'warn');
+    if (!settings.apiBaseUrl && (!settings.owner || !settings.repo || !settings.path)) {
+      updateStatus('請先填入 Worker API 網址，或打開進階設定補齊 GitHub 連線資訊。', 'warn');
       return null;
     }
 
     if (showStatus) {
-      updateStatus('正在從 GitHub 讀取目前的公版設定...', 'info');
+      updateStatus(
+        isWorkerMode(settings) ? '正在從 Worker 讀取目前的公版設定...' : '正在從 GitHub 讀取目前的公版設定...',
+        'info',
+      );
     }
 
     try {
@@ -745,7 +803,10 @@
       state.loadedConfig = createFormState(result.config, FALLBACK_CONFIG);
       state.formState = cloneState(state.loadedConfig);
       renderAll();
-      updateStatus(`已載入 GitHub 版本，sha：${state.loadedSha || '無'}`, 'success');
+      updateStatus(
+        `已載入${isWorkerMode(settings) ? ' Worker' : ' GitHub'} 版本，sha：${state.loadedSha || '無'}`,
+        'success',
+      );
       return result;
     } catch (error) {
       if (error && error.status === 404) {
@@ -760,8 +821,8 @@
 
   async function saveToGitHub() {
     const settings = saveSettingsToStorage();
-    if (!settings.owner || !settings.repo || !settings.path) {
-      updateStatus('請先填好 Repo Owner、Repo Name 和 config.json 路徑。', 'warn');
+    if (!settings.apiBaseUrl && (!settings.owner || !settings.repo || !settings.path)) {
+      updateStatus('請先填入 Worker API 網址，或打開進階設定補齊 GitHub 連線資訊。', 'warn');
       return;
     }
 
@@ -771,8 +832,16 @@
       return;
     }
 
+    if (!isWorkerMode(settings) && !settings.token) {
+      updateStatus('直連 GitHub 儲存需要 Token；建議改用 Worker API。', 'warn');
+      return;
+    }
+
     const config = buildPublicConfig(state.formState);
-    updateStatus('正在檢查雲端版本並儲存...', 'info');
+    updateStatus(
+      isWorkerMode(settings) ? '正在透過 Worker 同步到雲端...' : '正在檢查雲端版本並儲存...',
+      'info',
+    );
 
     let currentSha = '';
     try {
@@ -786,7 +855,7 @@
     }
 
     try {
-      const result = await saveContentsToGitHub({
+      const result = await saveContentsToBackend({
         ...settings,
         sha: currentSha,
         message: `feat: update ${settings.path}`,
@@ -797,12 +866,11 @@
       state.formState = cloneState(state.loadedConfig);
       state.loadedSha = result && result.content && result.content.sha ? result.content.sha : currentSha;
       renderAll();
-      updateStatus('已儲存到 GitHub。', 'success');
+      updateStatus(isWorkerMode(settings) ? '已同步到所有人的公版頁面。' : '已儲存到雲端。', 'success');
     } catch (error) {
       updateStatus(`儲存失敗：${error.message}`, 'error');
     }
   }
-
   function bindEvents() {
     elements.loadButton.addEventListener('click', () => {
       void loadFromGitHub();
@@ -835,11 +903,12 @@
     applySettingsToForm(state.settings);
     bindEvents();
     renderAll();
+    updateBackendSummary(state.settings);
 
     if (state.settings.owner && state.settings.repo && state.settings.path) {
       await loadFromGitHub(false);
     } else {
-      updateStatus('請先填寫 GitHub 連線設定，然後載入或直接儲存公版設定。', 'info');
+      updateStatus('請先填入 Worker API 網址，或在進階設定補齊 GitHub 連線資訊。', 'info');
     }
   }
 
@@ -857,3 +926,4 @@
     }
   }
 })();
+

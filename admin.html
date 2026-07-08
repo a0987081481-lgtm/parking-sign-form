@@ -6,8 +6,10 @@
     <title>停車場設備功能測試完成簽認單 - 維護頁</title>
     <link rel="stylesheet" href="style.css" />
     <script src="config.js" defer></script>
+    <script src="maintenance-settings.js" defer></script>
     <script src="config-loader.js" defer></script>
     <script src="github-contents.js" defer></script>
+    <script src="maintenance-sync.js" defer></script>
     <script src="admin-config-form.js" defer></script>
     <script src="admin.js" defer></script>
   </head>
@@ -22,43 +24,59 @@
       <section class="admin-card">
         <div class="section-title">
           <div>
-            <h2>GitHub 連線設定</h2>
-            <p>填好 Repo 與 Token 後，就能把設定讀回來或寫回去。</p>
+            <h2>維護連線</h2>
+            <p>預設走 Worker API，GitHub 直連藏在進階設定裡。</p>
           </div>
+          <span id="backend-mode-pill" class="field-pill field-pill--locked">未設定</span>
         </div>
 
         <div class="field-grid admin-settings-grid">
-          <div class="field">
-            <label for="repo-owner">Repo Owner</label>
-            <input id="repo-owner" type="text" autocomplete="off" />
-          </div>
-          <div class="field">
-            <label for="repo-name">Repo Name</label>
-            <input id="repo-name" type="text" autocomplete="off" />
-          </div>
-          <div class="field">
-            <label for="repo-branch">Branch</label>
-            <input id="repo-branch" type="text" autocomplete="off" />
-          </div>
-          <div class="field">
-            <label for="config-path">config.json 路徑</label>
-            <input id="config-path" type="text" autocomplete="off" />
-          </div>
-          <div class="field admin-token-field">
-            <label for="github-token">GitHub Token</label>
-            <input id="github-token" type="password" autocomplete="off" />
-            <label class="checkbox-inline">
-              <input id="remember-token" type="checkbox" />
-              記住這個 Token
-            </label>
+          <div class="field admin-api-field">
+            <label for="api-base-url">Worker API 網址</label>
+            <input id="api-base-url" type="url" placeholder="https://example.workers.dev" autocomplete="off" />
+            <p id="backend-hint" class="field-help">填入 Worker 後，儲存就會同步到所有人的公版頁面。</p>
           </div>
         </div>
 
         <div class="inline-actions">
           <button id="load-button" type="button" class="secondary">載入公版</button>
-          <button id="save-button" type="button" class="primary">儲存到 GitHub</button>
+          <button id="save-button" type="button" class="primary">儲存到公版</button>
           <button id="reset-button" type="button" class="ghost">還原已載入版本</button>
         </div>
+
+        <details class="admin-advanced">
+          <summary>進階設定</summary>
+          <div class="admin-advanced__body">
+            <p class="admin-advanced__note">只有 Worker 還沒建好，或要暫時直連 GitHub 時才需要這裡。</p>
+
+            <div class="field-grid admin-settings-grid">
+              <div class="field">
+                <label for="repo-owner">Repo Owner</label>
+                <input id="repo-owner" type="text" autocomplete="off" />
+              </div>
+              <div class="field">
+                <label for="repo-name">Repo Name</label>
+                <input id="repo-name" type="text" autocomplete="off" />
+              </div>
+              <div class="field">
+                <label for="repo-branch">Branch</label>
+                <input id="repo-branch" type="text" autocomplete="off" />
+              </div>
+              <div class="field">
+                <label for="config-path">config.json 路徑</label>
+                <input id="config-path" type="text" autocomplete="off" />
+              </div>
+              <div class="field admin-token-field">
+                <label for="github-token">GitHub Token</label>
+                <input id="github-token" type="password" autocomplete="off" />
+                <label class="checkbox-inline">
+                  <input id="remember-token" type="checkbox" />
+                  記住這個 Token
+                </label>
+              </div>
+            </div>
+          </div>
+        </details>
       </section>
 
       <section class="admin-card">

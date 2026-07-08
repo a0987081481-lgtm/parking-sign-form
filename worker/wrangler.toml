@@ -1,0 +1,10 @@
+name = "parking-sign-form-maintenance"
+main = "./maintenance-worker.js"
+compatibility_date = "2026-07-08"
+
+# 請用 `wrangler secret put` 設定下列秘密，不要寫進 repo：
+# - GITHUB_TOKEN
+# - GITHUB_REPO_OWNER
+# - GITHUB_REPO_NAME
+# - GITHUB_REPO_BRANCH
+# - GITHUB_CONFIG_PATH
