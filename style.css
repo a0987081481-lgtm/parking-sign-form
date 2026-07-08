@@ -1038,8 +1038,7 @@ body.signature-mode .signature-canvas {
   }
 
   body.signature-mode .signature-editor-toolbar {
-    position: sticky;
-    top: 0;
+    position: static;
     z-index: 2;
     padding: 12px;
     margin-top: 0;
