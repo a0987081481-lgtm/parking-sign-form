@@ -174,3 +174,26 @@ test('OPTIONS /config 會回傳 CORS preflight', async () => {
   assert.match(response.headers.get('access-control-allow-methods'), /GET/);
   assert.deepEqual(buildCorsHeaders()['access-control-allow-origin'], '*');
 });
+
+test('GET / 會導向 GitHub Pages 維護頁', async () => {
+  const {
+    handleMaintenanceRequest,
+  } = await loadWorker();
+
+  const response = await handleMaintenanceRequest(
+    new Request('https://example.com/', { method: 'GET' }),
+    {
+      GITHUB_REPO_OWNER: 'a0987081481-lgtm',
+      GITHUB_REPO_NAME: 'parking-sign-form',
+    },
+    async () => {
+      throw new Error('should not be called');
+    },
+  );
+
+  assert.equal(response.status, 302);
+  assert.equal(
+    response.headers.get('location'),
+    'https://a0987081481-lgtm.github.io/parking-sign-form/admin.html',
+  );
+});

@@ -94,6 +94,18 @@ export function buildCorsHeaders() {
   };
 }
 
+export function buildAdminPageUrl(env) {
+  const githubEnv = normalizeEnv(env);
+  const owner = trimText(githubEnv.owner);
+  const repo = trimText(githubEnv.repo);
+
+  if (!owner || !repo) {
+    return 'https://github.com';
+  }
+
+  return `https://${encodeURIComponent(owner)}.github.io/${encodeURIComponent(repo)}/admin.html`;
+}
+
 export function jsonResponse(body, init = {}) {
   return new Response(JSON.stringify(body), {
     status: init.status || 200,
@@ -175,6 +187,15 @@ export async function saveGithubConfig(env, config, message, sha, fetchImpl) {
 export async function handleMaintenanceRequest(request, env = {}, fetchImpl = fetch) {
   const method = request.method.toUpperCase();
   const pathname = new URL(request.url).pathname;
+
+  if ((method === 'GET' || method === 'HEAD') && pathname === '/') {
+    return new Response(null, {
+      status: 302,
+      headers: {
+        Location: buildAdminPageUrl(env),
+      },
+    });
+  }
 
   if (method === 'OPTIONS') {
     return new Response(null, {
