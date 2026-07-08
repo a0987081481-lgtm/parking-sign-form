@@ -196,13 +196,25 @@
     };
   }
 
-  function updateStatus(message, tone = 'info') {
-    if (!elements.status) {
+  function renderStatusBanner(statusElement, message, tone = 'info', options = {}) {
+    if (!statusElement) {
       return;
     }
 
-    elements.status.textContent = message;
-    elements.status.dataset.tone = tone;
+    statusElement.textContent = message;
+    if (!statusElement.dataset) {
+      statusElement.dataset = {};
+    }
+    statusElement.dataset.tone = tone;
+
+    const shouldReveal = options.reveal ?? tone !== 'info';
+    if (shouldReveal && typeof statusElement.scrollIntoView === 'function') {
+      statusElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+
+  function updateStatus(message, tone = 'info', options = {}) {
+    renderStatusBanner(elements.status, message, tone, options);
   }
 
   function updateBackendSummary(settings = state.settings || DEFAULT_SETTINGS) {
@@ -914,6 +926,7 @@
 
   const AdminPage = {
     init,
+    renderStatusBanner,
   };
 
   root.AdminPage = AdminPage;
