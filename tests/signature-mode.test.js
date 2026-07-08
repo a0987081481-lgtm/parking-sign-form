@@ -364,3 +364,13 @@ test('簽名模式會保留底部安全空間避免手機工具列遮住畫布',
     /body\.signature-mode #signature-section\s*\{[\s\S]*padding-bottom:\s*calc\(22px\s*\+\s*env\(safe-area-inset-bottom\)\s*\+\s*96px\);/,
   );
 });
+
+test('簽名模式會把簽名區鎖成固定高度避免手機頁面外捲', () => {
+  const stylePath = path.join(__dirname, '..', 'style.css');
+  const css = fs.readFileSync(stylePath, 'utf8');
+
+  assert.match(
+    css,
+    /body\.signature-mode #app\s*\{[\s\S]*height:\s*100dvh;[\s\S]*padding:\s*12px 0;[\s\S]*box-sizing:\s*border-box;[\s\S]*\}[\s\S]*body\.signature-mode \.form-paper\s*\{[\s\S]*height:\s*100%;[\s\S]*min-height:\s*0;[\s\S]*display:\s*flex;[\s\S]*flex-direction:\s*column;[\s\S]*\}[\s\S]*body\.signature-mode #signature-section\s*\{[\s\S]*min-height:\s*0;[\s\S]*overflow-y:\s*auto;[\s\S]*-webkit-overflow-scrolling:\s*touch;[\s\S]*touch-action:\s*pan-y;[\s\S]*overscroll-behavior-y:\s*contain;/,
+  );
+});
