@@ -884,6 +884,8 @@ body.signature-mode #action-buttons {
 body.signature-mode #signature-section {
   flex: 1 1 auto;
   overflow: auto;
+  padding-bottom: calc(22px + env(safe-area-inset-bottom) + 96px);
+  scroll-padding-bottom: calc(96px + env(safe-area-inset-bottom));
 }
 
 body.signature-mode .signature-summary-actions {

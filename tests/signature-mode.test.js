@@ -354,3 +354,13 @@ test('獨立簽名模式一次只顯示一個簽名人', () => {
   assert.equal(signatureCards.length, 1);
   assert.equal(switchButtons.length, 2);
 });
+
+test('簽名模式會保留底部安全空間避免手機工具列遮住畫布', () => {
+  const stylePath = path.join(__dirname, '..', 'style.css');
+  const css = fs.readFileSync(stylePath, 'utf8');
+
+  assert.match(
+    css,
+    /body\.signature-mode #signature-section\s*\{[\s\S]*padding-bottom:\s*calc\(22px\s*\+\s*env\(safe-area-inset-bottom\)\s*\+\s*96px\);/,
+  );
+});
