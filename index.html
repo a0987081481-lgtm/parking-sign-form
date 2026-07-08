@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>停車場設備功能測試完成簽認單</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+    <script src="config.js" defer></script>
+    <script src="config-loader.js" defer></script>
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <main id="app">
+      <section id="form-paper" class="form-paper">
+        <header id="form-header" class="form-header">
+          <p class="form-kicker">停車場設備檢測</p>
+          <h1 id="form-title"></h1>
+          <p class="form-lead">填資料 → 新增設備 → 勾選完成 → 簽名 → 產生 PDF</p>
+          <p id="config-status" class="config-status" aria-live="polite"></p>
+        </header>
+
+        <section id="basic-section" class="section-card"></section>
+        <section id="device-action-section" class="section-card"></section>
+        <section id="device-list" class="device-list"></section>
+        <section id="note-section" class="section-card"></section>
+        <section id="signature-section" class="section-card"></section>
+        <section id="form-footer" class="form-footer">
+          <div class="form-footer__row">
+            <span>產生時間</span>
+            <strong id="export-timestamp-value">尚未產生</strong>
+          </div>
+        </section>
+      </section>
+
+      <section id="action-buttons" class="action-bar"></section>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>停車場設備功能測試完成簽認單 - 維護頁</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="config.js" defer></script>
+    <script src="config-loader.js" defer></script>
+    <script src="github-contents.js" defer></script>
+    <script src="admin-config-form.js" defer></script>
+    <script src="admin.js" defer></script>
+  </head>
+  <body class="admin-page">
+    <main class="admin-shell">
+      <section class="admin-hero">
+        <p class="form-kicker">公版維護</p>
+        <h1>停車場設備功能測試完成簽認單</h1>
+        <p class="admin-lead">這裡不用碰 JSON，直接用表單改標題、欄位和設備項目就能更新所有人的公版頁面。</p>
+      </section>
+
+      <section class="admin-card">
+        <div class="section-title">
+          <div>
+            <h2>GitHub 連線設定</h2>
+            <p>填好 Repo 與 Token 後，就能把設定讀回來或寫回去。</p>
+          </div>
+        </div>
+
+        <div class="field-grid admin-settings-grid">
+          <div class="field">
+            <label for="repo-owner">Repo Owner</label>
+            <input id="repo-owner" type="text" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="repo-name">Repo Name</label>
+            <input id="repo-name" type="text" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="repo-branch">Branch</label>
+            <input id="repo-branch" type="text" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="config-path">config.json 路徑</label>
+            <input id="config-path" type="text" autocomplete="off" />
+          </div>
+          <div class="field admin-token-field">
+            <label for="github-token">GitHub Token</label>
+            <input id="github-token" type="password" autocomplete="off" />
+            <label class="checkbox-inline">
+              <input id="remember-token" type="checkbox" />
+              記住這個 Token
+            </label>
+          </div>
+        </div>
+
+        <div class="inline-actions">
+          <button id="load-button" type="button" class="secondary">載入公版</button>
+          <button id="save-button" type="button" class="primary">儲存到 GitHub</button>
+          <button id="reset-button" type="button" class="ghost">還原已載入版本</button>
+        </div>
+      </section>
+
+      <section class="admin-card">
+        <div class="section-title">
+          <div>
+            <h2>公版標題</h2>
+            <p>這就是公版頁最上面的名稱，儲存後所有人重新整理都會看到。</p>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="config-title">標題</label>
+          <input id="config-title" type="text" autocomplete="off" />
+        </div>
+      </section>
+
+      <section class="admin-card">
+        <div class="section-title">
+          <div>
+            <h2>核心基本欄位</h2>
+            <p>`案場名稱` 和 `場地代號` 會保留，不會讓人誤刪。</p>
+          </div>
+        </div>
+
+        <div id="core-basic-fields" class="field-list"></div>
+      </section>
+
+      <section class="admin-card">
+        <div class="section-title">
+          <div>
+            <h2>可編輯基本欄位</h2>
+            <p>需要的話可以新增其他欄位，名稱與型態都能直接改。</p>
+          </div>
+          <button id="add-basic-field" type="button" class="secondary">新增欄位</button>
+        </div>
+
+        <div id="basic-fields-list" class="field-list"></div>
+      </section>
+
+      <section class="admin-card">
+        <div class="section-title">
+          <div>
+            <h2>設備類型</h2>
+            <p>每一種設備都可以直接改名稱、調整項目，或新增新的類型。</p>
+          </div>
+          <button id="add-device-type" type="button" class="secondary">新增類型</button>
+        </div>
+
+        <div id="device-types-list" class="device-type-list"></div>
+      </section>
+
+      <p id="admin-status" class="config-status" aria-live="polite"></p>
+    </main>
+  </body>
+</html>

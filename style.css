@@ -1,0 +1,808 @@
+:root {
+  --bg: #eef3f8;
+  --paper: #ffffff;
+  --paper-soft: #f8fbfe;
+  --text: #16202d;
+  --muted: #667385;
+  --line: #d7e0ea;
+  --primary: #183a63;
+  --primary-strong: #102b4b;
+  --primary-soft: #e8eff7;
+  --accent: #9b6b15;
+  --danger: #a61d3a;
+  --shadow: 0 18px 44px rgba(18, 30, 48, 0.12);
+  --radius-xl: 24px;
+  --radius-lg: 18px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  color: var(--text);
+  font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  background:
+    radial-gradient(circle at top right, rgba(24, 58, 99, 0.12), transparent 32%),
+    radial-gradient(circle at bottom left, rgba(155, 107, 21, 0.08), transparent 28%),
+    linear-gradient(180deg, #f5f8fb 0%, var(--bg) 100%);
+}
+
+body.exporting {
+  background: #fff;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+button {
+  border: 1px solid transparent;
+  border-radius: 999px;
+  min-height: 44px;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+button:hover {
+  transform: translateY(-1px);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+button.primary {
+  color: #fff;
+  background: linear-gradient(180deg, var(--primary-strong), var(--primary));
+  box-shadow: 0 10px 22px rgba(24, 58, 99, 0.16);
+}
+
+button.secondary {
+  color: var(--primary);
+  background: #fff;
+  border-color: var(--line);
+}
+
+button.ghost {
+  color: var(--muted);
+  background: #fff;
+  border-color: var(--line);
+}
+
+button.danger {
+  color: var(--danger);
+  background: #fff5f8;
+  border-color: #f0c2ce;
+}
+
+button.small {
+  min-height: 38px;
+  padding-inline: 0.85rem;
+  font-size: 0.92rem;
+}
+
+#app {
+  width: min(1160px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 24px 0 40px;
+}
+
+.form-paper {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  background: var(--paper);
+  box-shadow: var(--shadow);
+}
+
+.form-header {
+  padding: 28px 28px 18px;
+  background:
+    linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  border-bottom: 1px solid var(--line);
+}
+
+.form-kicker {
+  margin: 0 0 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+#form-title {
+  margin: 0;
+  font-size: clamp(1.6rem, 2vw, 2.3rem);
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+}
+
+.form-lead {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 0.96rem;
+}
+
+.config-status {
+  margin: 14px 0 0;
+  min-height: 1.25rem;
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.config-status[data-tone='success'] {
+  color: #0f6d3a;
+}
+
+.config-status[data-tone='warn'] {
+  color: #8a5a00;
+}
+
+.config-status[data-tone='error'] {
+  color: var(--danger);
+}
+
+.admin-shell {
+  width: min(1160px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 24px 0 40px;
+  display: grid;
+  gap: 18px;
+}
+
+.admin-hero,
+.admin-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  background: var(--paper);
+  box-shadow: var(--shadow);
+}
+
+.admin-hero {
+  padding: 28px;
+  background:
+    linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+}
+
+.admin-hero h1 {
+  margin: 0;
+  font-size: clamp(1.7rem, 2.2vw, 2.4rem);
+  line-height: 1.15;
+  letter-spacing: 0.02em;
+}
+
+.admin-lead {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 0.98rem;
+}
+
+.admin-card {
+  padding: 22px 28px;
+}
+
+.admin-settings-grid {
+  margin-top: 14px;
+}
+
+.admin-token-field {
+  grid-column: 1 / -1;
+}
+
+.admin-card .section-title {
+  margin-bottom: 16px;
+}
+
+.field-list,
+.device-type-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.3fr) minmax(150px, 0.8fr) auto auto;
+  align-items: end;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, #fff 0%, #fbfdff 100%);
+}
+
+.field-row--locked {
+  background: #f7fbff;
+}
+
+.field-row .field {
+  min-width: 0;
+}
+
+.field-row__meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.field-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.48rem 0.8rem;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.field-pill--locked {
+  background: #eef3f8;
+  color: var(--muted);
+}
+
+.field-inline {
+  justify-self: start;
+}
+
+.field-row .field input,
+.field-row .field textarea,
+.field-row .field select,
+.device-type-card .field input,
+.device-type-card .field textarea,
+.device-type-card .field select {
+  width: 100%;
+  min-height: 48px;
+  padding: 0.8rem 0.95rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: #fff;
+  color: var(--text);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.field-row .field textarea {
+  min-height: 96px;
+}
+
+.field-row .field input:focus,
+.field-row .field textarea:focus,
+.field-row .field select:focus,
+.device-type-card .field input:focus,
+.device-type-card .field textarea:focus,
+.device-type-card .field select:focus {
+  outline: none;
+  border-color: #8fa5bf;
+  box-shadow: 0 0 0 3px rgba(24, 58, 99, 0.12);
+}
+
+.field-row .field input:disabled,
+.field-row .field textarea:disabled,
+.field-row .field select:disabled,
+.device-type-card .field input:disabled,
+.device-type-card .field textarea:disabled,
+.device-type-card .field select:disabled {
+  color: var(--muted);
+  background: #f4f7fb;
+}
+
+.device-type-card {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: linear-gradient(180deg, #fff 0%, #fbfdff 100%);
+}
+
+.device-type-card__head {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.device-type-card__head .field {
+  min-width: 0;
+}
+
+.device-item-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.device-item-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.device-item-row__field {
+  margin: 0;
+}
+
+.device-type-actions {
+  margin-top: 0;
+}
+
+.checkbox-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 0.75rem;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.inline-actions button {
+  flex: 1 1 180px;
+}
+
+.section-card {
+  padding: 22px 28px;
+  border-bottom: 1px solid var(--line);
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 14px;
+}
+
+.section-title h2,
+.section-title h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.section-title p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field label {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.required-mark {
+  margin-left: 4px;
+  color: var(--accent);
+}
+
+.field input,
+.field textarea {
+  width: 100%;
+  min-height: 48px;
+  padding: 0.8rem 0.95rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: #fff;
+  color: var(--text);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.field select {
+  width: 100%;
+  min-height: 48px;
+  padding: 0.8rem 0.95rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: #fff;
+  color: var(--text);
+}
+
+.field textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.field input:focus,
+.field textarea:focus,
+.field select:focus,
+.device-card input:focus,
+.device-card select:focus,
+.signature-card canvas:focus {
+  outline: none;
+  border-color: #8fa5bf;
+  box-shadow: 0 0 0 3px rgba(24, 58, 99, 0.12);
+}
+
+.field input:disabled,
+.field textarea:disabled,
+.field select:disabled {
+  color: var(--muted);
+  background: #f4f7fb;
+}
+
+.field-help {
+  margin: -2px 0 0;
+  font-size: 0.86rem;
+  color: var(--muted);
+}
+
+.device-action-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.device-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px 28px 22px;
+  border-bottom: 1px solid var(--line);
+}
+
+.device-card {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: linear-gradient(180deg, #fff 0%, #fbfdff 100%);
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.device-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.device-card__title {
+  margin: 0;
+  font-size: 1.12rem;
+}
+
+.device-card__meta {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.device-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.device-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.device-field label {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.device-field input {
+  width: 100%;
+  min-height: 46px;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: #fff;
+}
+
+.device-items {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 12px;
+}
+
+.check-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.check-item input {
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  flex: 0 0 auto;
+  accent-color: var(--primary);
+}
+
+.check-item span {
+  line-height: 1.4;
+}
+
+.device-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.empty-state {
+  padding: 18px;
+  border: 1px dashed var(--line);
+  border-radius: 16px;
+  background: var(--paper-soft);
+  color: var(--muted);
+}
+
+.signature-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.signature-intro {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #f4f7fb;
+  color: var(--text);
+}
+
+.signature-card {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: #fff;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.signature-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.signature-card__title {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.signature-card__note {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.signature-canvas {
+  display: block;
+  width: 100%;
+  height: 180px;
+  border: 1px solid #cfd7e3;
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, #fff 0%, #fbfdff 100%);
+  touch-action: none;
+}
+
+.signature-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.form-footer {
+  padding: 18px 28px 24px;
+}
+
+.form-footer__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.form-footer__row strong {
+  color: var(--text);
+}
+
+.action-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-top: 20px;
+}
+
+.action-bar button {
+  flex: 1 1 180px;
+}
+
+.no-print {
+  /* 於列印與匯出模式中隱藏。 */
+}
+
+.exporting .no-print,
+.exporting #device-action-section,
+.exporting .empty-state-action,
+.exporting .signature-actions,
+.exporting .device-actions,
+.exporting #action-buttons {
+  display: none !important;
+}
+
+.exporting #app {
+  width: min(980px, calc(100% - 16px));
+}
+
+.exporting .form-paper {
+  box-shadow: none;
+}
+
+.exporting body {
+  background: #fff;
+}
+
+@media (max-width: 860px) {
+  #app {
+    width: min(100%, calc(100% - 18px));
+    padding-top: 12px;
+  }
+
+  .field-grid,
+  .device-fields,
+  .device-items,
+  .signature-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .section-card,
+  .device-list,
+  .form-header,
+  .form-footer {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .device-card__head,
+  .signature-card__head,
+  .form-footer__row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .action-bar button {
+    flex-basis: 100%;
+  }
+
+  .admin-shell {
+    width: min(100%, calc(100% - 18px));
+    padding-top: 12px;
+  }
+
+  .admin-hero,
+  .admin-card {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .inline-actions button {
+    flex-basis: 100%;
+  }
+
+  .field-row,
+  .device-type-card__head,
+  .device-item-row {
+    grid-template-columns: 1fr;
+  }
+
+  .field-row__meta {
+    justify-content: flex-start;
+  }
+
+  .field-inline {
+    justify-self: start;
+  }
+
+  .device-type-card__head .field {
+    width: 100%;
+  }
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+  body {
+    background: #fff !important;
+    color: #000;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  #app {
+    width: 100% !important;
+    padding: 0 !important;
+  }
+
+  .form-paper {
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  #device-action-section,
+  #action-buttons,
+  .no-print,
+  .signature-actions,
+  .empty-state-action {
+    display: none !important;
+  }
+
+  .section-card,
+  .device-card,
+  .signature-card,
+  .device-list,
+  .form-header,
+  .form-footer {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .field input,
+  .field textarea,
+  .device-field input,
+  .signature-canvas {
+    box-shadow: none !important;
+  }
+}
