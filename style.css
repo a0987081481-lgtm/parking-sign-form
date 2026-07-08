@@ -665,6 +665,86 @@ button.small {
   color: var(--muted);
 }
 
+.signature-summary-grid,
+.signature-workspace {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.signature-summary-card {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: linear-gradient(180deg, #fff 0%, #fbfdff 100%);
+}
+
+.signature-summary-card--signed {
+  border-color: #9fd1b1;
+  background: linear-gradient(180deg, #f4fbf6 0%, #ffffff 100%);
+}
+
+.signature-summary-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.signature-summary-card__title {
+  margin: 0;
+  font-size: 1.02rem;
+}
+
+.signature-summary-card__status {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.4rem 0.7rem;
+  border-radius: 999px;
+  background: #eef4fb;
+  color: var(--primary);
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.signature-summary-card__status--signed {
+  background: #ecf8ef;
+  color: #0f6d3a;
+}
+
+.signature-preview {
+  min-height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+  border: 1px dashed #cfd7e3;
+  border-radius: 16px;
+  background: #f8fbfe;
+  overflow: hidden;
+}
+
+.signature-preview--signed {
+  border-style: solid;
+  background: #fff;
+}
+
+.signature-preview img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.signature-preview__empty {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 600;
+}
+
 .signature-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -725,6 +805,76 @@ button.small {
   margin-top: 12px;
 }
 
+.signature-editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 18px 0 4px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+  position: sticky;
+  top: 12px;
+  z-index: 2;
+  box-shadow: 0 8px 20px rgba(18, 30, 48, 0.1);
+}
+
+.signature-editor-toolbar button {
+  flex: 1 1 180px;
+}
+
+body.signature-mode {
+  overflow: hidden;
+}
+
+body.signature-mode #app {
+  width: min(1160px, calc(100% - 16px));
+  padding-bottom: 12px;
+}
+
+body.signature-mode .form-paper {
+  min-height: calc(100dvh - 24px);
+  display: flex;
+  flex-direction: column;
+}
+
+body.signature-mode #basic-section,
+body.signature-mode #device-action-section,
+body.signature-mode #device-list,
+body.signature-mode #note-section,
+body.signature-mode #form-footer,
+body.signature-mode #action-buttons {
+  display: none !important;
+}
+
+body.signature-mode #signature-section {
+  flex: 1 1 auto;
+  overflow: auto;
+}
+
+body.signature-mode .signature-summary-actions {
+  display: none;
+}
+
+body.signature-mode .signature-intro {
+  background: #eef4fb;
+}
+
+body.signature-mode .signature-workspace {
+  margin-top: 6px;
+}
+
+body.signature-mode .signature-card {
+  padding: 18px;
+  border-radius: 22px;
+}
+
+body.signature-mode .signature-canvas {
+  height: min(38vh, 340px);
+}
+
 .form-footer {
   padding: 18px 28px 24px;
 }
@@ -760,6 +910,8 @@ button.small {
 .exporting #device-action-section,
 .exporting .empty-state-action,
 .exporting .signature-actions,
+.exporting .signature-editor-toolbar,
+.exporting .signature-summary-actions,
 .exporting .device-actions,
 .exporting #action-buttons {
   display: none !important;
@@ -786,7 +938,9 @@ button.small {
   .field-grid,
   .device-fields,
   .device-items,
-  .signature-grid {
+  .signature-grid,
+  .signature-summary-grid,
+  .signature-workspace {
     grid-template-columns: 1fr;
   }
 
@@ -840,6 +994,18 @@ button.small {
 
   .device-type-card__head .field {
     width: 100%;
+  }
+
+  body.signature-mode .signature-editor-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    padding: 12px;
+    margin-top: 0;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 8px 20px rgba(18, 30, 48, 0.1);
   }
 }
 

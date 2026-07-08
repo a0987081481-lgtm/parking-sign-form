@@ -81,6 +81,7 @@
   let elements = {};
   let exportTimestampBackup = null;
   let resizeTimer = null;
+  let signatureMode = false;
 
   function pad2(value) {
     return String(value).padStart(2, '0');
@@ -601,6 +602,135 @@
     container.appendChild(grid);
   }
 
+  function buildSignatureSectionModel(isSignatureMode = signatureMode, signatures = state && state.signatures ? state.signatures : {}) {
+    const mode = isSignatureMode ? 'editor' : 'summary';
+    const signerTitles = {
+      tester: '皜祈岫鈭箏簽名',
+      owner: '璆凋蜓嚗?港誨銵?簽名',
+    };
+
+    return {
+      mode,
+      title: mode === 'editor' ? '獨立簽名畫面' : '簽名總覽',
+      intro:
+        mode === 'editor'
+          ? '只會顯示簽名工作區，簽完按儲存並返回。'
+          : '先看簽名摘要，確認沒問題後再進入簽名畫面。',
+      primaryActionLabel: mode === 'editor' ? '儲存並返回' : '進入簽名畫面',
+      secondaryActionLabel: mode === 'editor' ? '返回總覽' : '',
+      clearAllLabel: mode === 'editor' ? '清除所有簽名' : '',
+      signers: SIGNATURE_KEYS.map((signatureKey) => {
+        const dataUrl = String(signatures[signatureKey] || '');
+        return {
+          key: signatureKey,
+          title: signerTitles[signatureKey] || signatureKey,
+          statusLabel: dataUrl ? '已簽名' : '尚未簽名',
+          hasPreview: Boolean(dataUrl),
+          previewDataUrl: dataUrl,
+        };
+      }),
+    };
+  }
+
+  function createSignatureSummaryCard(signer) {
+    const card = document.createElement('article');
+    card.className = `signature-summary-card${signer.hasPreview ? ' signature-summary-card--signed' : ''}`;
+    card.dataset.signatureKey = signer.key;
+
+    const head = document.createElement('div');
+    head.className = 'signature-summary-card__head';
+
+    const title = document.createElement('h3');
+    title.className = 'signature-summary-card__title';
+    title.textContent = signer.title;
+
+    const status = document.createElement('span');
+    status.className = `signature-summary-card__status${signer.hasPreview ? ' signature-summary-card__status--signed' : ''}`;
+    status.textContent = signer.statusLabel;
+
+    head.appendChild(title);
+    head.appendChild(status);
+
+    const preview = document.createElement('div');
+    preview.className = `signature-preview${signer.hasPreview ? ' signature-preview--signed' : ''}`;
+
+    if (signer.hasPreview) {
+      const image = document.createElement('img');
+      image.src = signer.previewDataUrl;
+      image.alt = `${signer.title}預覽`;
+      preview.appendChild(image);
+    } else {
+      const empty = document.createElement('p');
+      empty.className = 'signature-preview__empty';
+      empty.textContent = '尚未簽名';
+      preview.appendChild(empty);
+    }
+
+    card.appendChild(head);
+    card.appendChild(preview);
+    return card;
+  }
+
+  function renderSignatureSectionV2() {
+    const container = elements.signatureSection;
+    container.innerHTML = '';
+
+    const model = buildSignatureSectionModel();
+    container.dataset.mode = model.mode;
+
+    container.appendChild(createSectionTitle(model.title, model.mode === 'editor' ? '簽名時只保留簽名畫面，避免誤按其他欄位。' : '先看摘要，確認簽名狀態後再進入獨立簽名畫面。'));
+
+    const intro = document.createElement('p');
+    intro.className = 'signature-intro';
+    intro.textContent = model.intro;
+    container.appendChild(intro);
+
+    if (model.mode === 'summary') {
+      const summaryGrid = document.createElement('div');
+      summaryGrid.className = 'signature-summary-grid';
+      summaryGrid.id = 'signature-summary-grid';
+
+      model.signers.forEach((signer) => {
+        summaryGrid.appendChild(createSignatureSummaryCard(signer));
+      });
+
+      container.appendChild(summaryGrid);
+
+      const actions = document.createElement('div');
+      actions.className = 'inline-actions signature-summary-actions';
+      actions.appendChild(createActionButton(model.primaryActionLabel, 'enter-signature-mode', 'primary'));
+      container.appendChild(actions);
+      return;
+    }
+
+    const toolbar = document.createElement('div');
+    toolbar.className = 'signature-editor-toolbar';
+    toolbar.appendChild(createActionButton(model.primaryActionLabel, 'save-signatures-return', 'primary'));
+    toolbar.appendChild(createActionButton(model.secondaryActionLabel, 'exit-signature-mode', 'ghost'));
+    toolbar.appendChild(createActionButton(model.clearAllLabel, 'clear-all-signatures', 'secondary'));
+    container.appendChild(toolbar);
+
+    const workspace = document.createElement('div');
+    workspace.className = 'signature-workspace';
+    workspace.id = 'signature-workspace';
+
+    workspace.appendChild(createSignatureCard('tester', '皜祈岫鈭箏簽名'));
+    workspace.appendChild(createSignatureCard('owner', '璆凋蜓嚗?港誨銵?簽名'));
+
+    container.appendChild(workspace);
+  }
+
+  function setSignatureMode(nextMode) {
+    signatureMode = Boolean(nextMode);
+    if (document.body && document.body.classList) {
+      document.body.classList.toggle('signature-mode', signatureMode);
+    }
+    renderAll();
+    if (elements.signatureSection && typeof elements.signatureSection.scrollIntoView === 'function') {
+      elements.signatureSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
   function renderActionButtons() {
     const container = elements.actionButtons;
     container.innerHTML = '';
@@ -638,9 +768,11 @@
     renderDeviceActions();
     renderDeviceList();
     renderNoteSection();
-    renderSignatureSection();
+    renderSignatureSectionV2();
     renderActionButtons();
-    hydrateSignatureCanvases();
+    if (signatureMode) {
+      hydrateSignatureCanvases();
+    }
   }
 
   function persistAndMaybeRender(render = false) {
@@ -735,12 +867,41 @@
   }
 
   function handleSignatureClick(event) {
-    const button = event.target.closest('button[data-action="clear-signature"]');
+    const button = event.target.closest('button[data-action]');
     if (!button) {
       return;
     }
 
-    clearSignature(button.dataset.signatureKey);
+    const action = button.dataset.action;
+    if (action === 'enter-signature-mode') {
+      setSignatureMode(true);
+      return;
+    }
+
+    if (action === 'save-signatures-return') {
+      saveState();
+      setSignatureMode(false);
+      return;
+    }
+
+    if (action === 'exit-signature-mode') {
+      setSignatureMode(false);
+      return;
+    }
+
+    if (action === 'clear-all-signatures') {
+      state.signatures = {
+        tester: '',
+        owner: '',
+      };
+      saveState();
+      renderAll();
+      return;
+    }
+
+    if (action === 'clear-signature') {
+      clearSignature(button.dataset.signatureKey);
+    }
   }
 
   function handleActionButtonsClick(event) {
@@ -1151,6 +1312,10 @@
     }
 
     state = createInitialState();
+    signatureMode = false;
+    if (document.body && document.body.classList) {
+      document.body.classList.remove('signature-mode');
+    }
     saveState();
     renderAll();
     updateExportTimestampDisplay('尚未產生');
@@ -1228,6 +1393,7 @@
 
   const ParkingSignForm = {
     buildPdfFilename,
+    buildSignatureSectionModel,
     createInitialState,
     formatDateInputValue,
     formatDateTimeValue,
@@ -1237,6 +1403,7 @@
     normalizeFilenamePart,
     saveState,
     clearForm,
+    setSignatureMode,
   };
 
   root.ParkingSignForm = ParkingSignForm;
