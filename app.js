@@ -73,6 +73,17 @@
     : async (fallback) => ({ config: fallback, source: 'fallback', error: new Error('Config loader unavailable') });
   const STORAGE_KEY = 'parking-sign-form-state-v1';
   const PDF_SUFFIX = '功能測試完成簽認單';
+  const PDF_CAPTURE_SCALE_LIMIT = 1.25;
+  const PDF_IMAGE_QUALITY = 0.82;
+  const PDF_IMAGE_TYPE = 'image/jpeg';
+  const PDF_IMAGE_FORMAT = 'JPEG';
+  const PDF_IMAGE_FALLBACK_FORMAT = 'PNG';
+  const PDF_DOCUMENT_OPTIONS = {
+    orientation: 'p',
+    unit: 'mm',
+    format: 'a4',
+    compress: true,
+  };
   const FALLBACK_PROJECT_NAME = '未命名案場';
   const SIGNATURE_KEYS = ['tester', 'owner'];
 
@@ -1213,6 +1224,30 @@
     return { jsPdfCtor, canvasToPdf };
   }
 
+  function getPdfCaptureScale(devicePixelRatio) {
+    const parsedRatio = Number(devicePixelRatio);
+    const safeRatio = Number.isFinite(parsedRatio) && parsedRatio > 0 ? parsedRatio : 1;
+    return Math.min(PDF_CAPTURE_SCALE_LIMIT, Math.max(1, safeRatio));
+  }
+
+  function createPdfDocument(jsPdfCtor) {
+    return new jsPdfCtor(PDF_DOCUMENT_OPTIONS);
+  }
+
+  function createPdfImageAsset(canvas) {
+    try {
+      return {
+        dataUrl: canvas.toDataURL(PDF_IMAGE_TYPE, PDF_IMAGE_QUALITY),
+        format: PDF_IMAGE_FORMAT,
+      };
+    } catch (error) {
+      return {
+        dataUrl: canvas.toDataURL('image/png'),
+        format: PDF_IMAGE_FALLBACK_FORMAT,
+      };
+    }
+  }
+
   function setExportMode(enabled) {
     document.body.classList.toggle('exporting', enabled);
   }
@@ -1227,7 +1262,7 @@
   function captureBlock(node, html2canvasFn) {
     return html2canvasFn(node, {
       backgroundColor: '#ffffff',
-      scale: Math.min(2, window.devicePixelRatio || 1),
+      scale: getPdfCaptureScale(window.devicePixelRatio || 1),
       useCORS: true,
       scrollX: 0,
       scrollY: -window.scrollY,
@@ -1262,10 +1297,10 @@
     const contentWidth = pageWidth - options.marginLeft - options.marginRight;
     const availableHeight = pageHeight - options.marginTop - options.marginBottom;
     const imgHeight = (canvas.height * contentWidth) / canvas.width;
-    const fullImage = canvas.toDataURL('image/png');
+    const fullImage = createPdfImageAsset(canvas);
 
     if (options.cursorY + imgHeight <= pageHeight - options.marginBottom) {
-      pdf.addImage(fullImage, 'PNG', options.marginLeft, options.cursorY, contentWidth, imgHeight);
+      pdf.addImage(fullImage.dataUrl, fullImage.format, options.marginLeft, options.cursorY, contentWidth, imgHeight);
       return options.cursorY + imgHeight;
     }
 
@@ -1274,7 +1309,7 @@
         pdf.addPage();
         options.cursorY = options.marginTop;
       }
-      pdf.addImage(fullImage, 'PNG', options.marginLeft, options.cursorY, contentWidth, imgHeight);
+      pdf.addImage(fullImage.dataUrl, fullImage.format, options.marginLeft, options.cursorY, contentWidth, imgHeight);
       return options.cursorY + imgHeight;
     }
 
@@ -1296,7 +1331,8 @@
       sliceContext.drawImage(canvas, 0, offset, canvas.width, sliceHeight, 0, 0, canvas.width, sliceHeight);
 
       const sliceImageHeight = (sliceHeight * contentWidth) / canvas.width;
-      pdf.addImage(sliceCanvas.toDataURL('image/png'), 'PNG', options.marginLeft, currentY, contentWidth, sliceImageHeight);
+      const sliceImage = createPdfImageAsset(sliceCanvas);
+      pdf.addImage(sliceImage.dataUrl, sliceImage.format, options.marginLeft, currentY, contentWidth, sliceImageHeight);
 
       offset += sliceHeight;
       currentY += sliceImageHeight;
@@ -1340,7 +1376,7 @@
     await waitForLayout();
 
     try {
-      const pdf = new jsPdfCtor('p', 'mm', 'a4');
+      const pdf = createPdfDocument(jsPdfCtor);
       const pageHeight = pdf.internal.pageSize.getHeight();
       const marginTop = 10;
       const marginBottom = 10;
@@ -1468,12 +1504,15 @@
     buildPdfFilename,
     buildSignatureSectionModel,
     createInitialState,
+    createPdfDocument,
+    createPdfImageAsset,
     formatDateInputValue,
     formatDateTimeValue,
     generatePDF,
     init,
     loadState,
     normalizeFilenamePart,
+    getPdfCaptureScale,
     saveState,
     clearForm,
     setSignatureMode,

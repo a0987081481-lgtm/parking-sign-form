@@ -970,6 +970,28 @@ body.signature-mode .signature-canvas {
   background: #fff;
 }
 
+.exporting .form-header,
+.exporting .section-card,
+.exporting .device-list,
+.exporting .device-card,
+.exporting .device-type-card,
+.exporting .signature-card,
+.exporting .signature-summary-card,
+.exporting .signature-preview,
+.exporting .signature-intro,
+.exporting .form-footer {
+  background: #fff !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+.exporting .field-row,
+.exporting .check-item,
+.exporting .device-item {
+  background: #fff !important;
+  box-shadow: none !important;
+}
+
 @media (max-width: 860px) {
   #app {
     width: min(100%, calc(100% - 18px));
