@@ -128,9 +128,17 @@ export async function decodeGithubConfig(env, fetchImpl) {
     throw error;
   }
 
-  const response = await fetchImpl(buildContentsUrl(githubEnv, true), {
+  const url = buildContentsUrl(githubEnv, true);
+  let response = await fetchImpl(url, {
     headers: buildGithubHeaders(githubEnv.token),
   });
+
+  // 公開 repo 不需要讀取權限；失效的舊 token 不應阻擋載入公版。
+  if (response && response.status === 401 && githubEnv.token) {
+    response = await fetchImpl(url, {
+      headers: buildGithubHeaders(''),
+    });
+  }
 
   if (!response || !response.ok) {
     const status = response && typeof response.status === 'number' ? response.status : 'unknown';
@@ -222,9 +230,13 @@ export async function handleMaintenanceRequest(request, env = {}, fetchImpl = fe
         path: result.path,
         source: 'github',
       });
-    } catch {
+    } catch (error) {
+      const status = error && Number.isInteger(error.status) ? error.status : 0;
       return jsonResponse(
-        { ok: false, error: 'Worker 讀取 GitHub 設定失敗。' },
+        {
+          ok: false,
+          error: status ? `Worker 讀取 GitHub 設定失敗（GitHub HTTP ${status}）。` : 'Worker 讀取 GitHub 設定失敗。',
+        },
         { status: 502 },
       );
     }

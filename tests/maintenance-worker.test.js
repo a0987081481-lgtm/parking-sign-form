@@ -85,6 +85,41 @@ test('GET /config 不需要呼叫端驗證，會直接回傳雲端設定', async
   assert.equal(body.config.title, '停車場設備功能測試完成簽認單');
 });
 
+test('GET /config 遇到失效 Worker token 時會退回公開讀取', async () => {
+  const { decodeGithubConfig } = await loadWorker();
+  const calls = [];
+  const fetchStub = async (url, init) => {
+    calls.push(init.headers);
+    if (calls.length === 1) {
+      return { ok: false, status: 401, json: async () => ({}) };
+    }
+
+    assert.equal(init.headers.Authorization, undefined);
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({
+        path: 'config.json',
+        sha: 'public-sha',
+        content: encodeBase64(JSON.stringify({ title: '公開設定' })),
+      }),
+    };
+  };
+
+  const result = await decodeGithubConfig(
+    {
+      GITHUB_REPO_OWNER: 'a0987081481-lgtm',
+      GITHUB_REPO_NAME: 'parking-sign-form',
+      GITHUB_TOKEN: 'expired-token',
+    },
+    fetchStub,
+  );
+
+  assert.equal(result.sha, 'public-sha');
+  assert.equal(result.config.title, '公開設定');
+  assert.equal(calls.length, 2);
+});
+
 test('PUT /config 會更新 GitHub，且不需要來自呼叫端的驗證資訊', async () => {
   const {
     handleMaintenanceRequest,
