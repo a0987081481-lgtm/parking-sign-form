@@ -28,6 +28,16 @@ test('normalizeEnv 會套用預設分支與路徑', () => {
   });
 });
 
+test('normalizeEnv 在 Worker 沒有 repo secrets 時會使用目前公版 repo 預設值', async () => {
+  const { normalizeEnv } = await loadWorker();
+  const result = normalizeEnv({});
+
+  assert.equal(result.owner, 'a0987081481-lgtm');
+  assert.equal(result.repo, 'parking-sign-form');
+  assert.equal(result.branch, 'main');
+  assert.equal(result.path, 'config.json');
+});
+
 test('GET /config 不需要呼叫端驗證，會直接回傳雲端設定', async () => {
   const {
     handleMaintenanceRequest,
@@ -105,7 +115,7 @@ test('PUT /config 會更新 GitHub，且不需要來自呼叫端的驗證資訊'
     assert.equal(init.method, 'PUT');
     assert.equal(init.headers.Accept, 'application/vnd.github+json');
     assert.equal(init.headers['User-Agent'], 'parking-sign-form');
-    assert.equal(init.headers.Authorization, undefined);
+    assert.equal(init.headers.Authorization, 'Bearer server-secret');
 
     const body = JSON.parse(init.body);
     assert.equal(body.sha, 'current-sha');
@@ -142,7 +152,7 @@ test('PUT /config 會更新 GitHub，且不需要來自呼叫端的驗證資訊'
       GITHUB_REPO_NAME: 'sign-form',
       GITHUB_REPO_BRANCH: 'main',
       GITHUB_CONFIG_PATH: 'config.json',
-      GITHUB_TOKEN: '',
+      GITHUB_TOKEN: 'server-secret',
     },
     fetchStub,
   );
@@ -173,6 +183,57 @@ test('OPTIONS /config 會回傳 CORS preflight', async () => {
   assert.equal(response.headers.get('access-control-allow-origin'), '*');
   assert.match(response.headers.get('access-control-allow-methods'), /GET/);
   assert.deepEqual(buildCorsHeaders()['access-control-allow-origin'], '*');
+});
+
+test('GET /config 發生 GitHub 錯誤時會回傳可讀的 CORS JSON', async () => {
+  const { handleMaintenanceRequest } = await loadWorker();
+
+  const response = await handleMaintenanceRequest(
+    new Request('https://example.com/config', { method: 'GET' }),
+    {
+      GITHUB_REPO_OWNER: 'a0987081481-lgtm',
+      GITHUB_REPO_NAME: 'parking-sign-form',
+    },
+    async () => {
+      throw new Error('GitHub unavailable');
+    },
+  );
+
+  assert.equal(response.status, 502);
+  assert.equal(response.headers.get('access-control-allow-origin'), '*');
+  assert.deepEqual(await response.json(), {
+    ok: false,
+    error: 'Worker 讀取 GitHub 設定失敗。',
+  });
+});
+
+test('PUT /config 沒有 Worker token 時會回傳明確的 CORS JSON', async () => {
+  const { handleMaintenanceRequest } = await loadWorker();
+
+  const response = await handleMaintenanceRequest(
+    new Request('https://example.com/config', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ config: {} }),
+    }),
+    {
+      GITHUB_REPO_OWNER: 'a0987081481-lgtm',
+      GITHUB_REPO_NAME: 'parking-sign-form',
+      GITHUB_TOKEN: '',
+    },
+    async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ path: 'config.json', sha: 'abc123', content: encodeBase64('{}') }),
+    }),
+  );
+
+  assert.equal(response.status, 500);
+  assert.equal(response.headers.get('access-control-allow-origin'), '*');
+  assert.deepEqual(await response.json(), {
+    ok: false,
+    error: 'Worker 尚未設定 GitHub Token，無法儲存公版。',
+  });
 });
 
 test('GET / 會導向 GitHub Pages 維護頁', async () => {

@@ -6,11 +6,14 @@ function isPlainObject(value) {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
+const DEFAULT_REPO_OWNER = 'a0987081481-lgtm';
+const DEFAULT_REPO_NAME = 'parking-sign-form';
+
 export function normalizeEnv(env = {}) {
   return {
     token: trimText(env.GITHUB_TOKEN),
-    owner: trimText(env.GITHUB_REPO_OWNER),
-    repo: trimText(env.GITHUB_REPO_NAME),
+    owner: trimText(env.GITHUB_REPO_OWNER) || DEFAULT_REPO_OWNER,
+    repo: trimText(env.GITHUB_REPO_NAME) || DEFAULT_REPO_NAME,
     branch: trimText(env.GITHUB_REPO_BRANCH) || 'main',
     path: trimText(env.GITHUB_CONFIG_PATH) || 'config.json',
   };
@@ -156,6 +159,12 @@ export async function saveGithubConfig(env, config, message, sha, fetchImpl) {
     throw error;
   }
 
+  if (!githubEnv.token) {
+    const error = new Error('Worker 尚未設定 GitHub Token，無法儲存公版。');
+    error.status = 500;
+    throw error;
+  }
+
   const payload = {
     message: trimText(message) || 'feat: update config.json',
     content: encodeUtf8Base64(`${JSON.stringify(isPlainObject(config) ? config : {}, null, 2)}\n`),
@@ -205,36 +214,51 @@ export async function handleMaintenanceRequest(request, env = {}, fetchImpl = fe
   }
 
   if (method === 'GET' && (pathname.endsWith('/config') || pathname.endsWith('/config.json'))) {
-    const result = await decodeGithubConfig(env, fetchImpl);
-    return jsonResponse({
-      config: result.config,
-      sha: result.sha,
-      path: result.path,
-      source: 'github',
-    });
+    try {
+      const result = await decodeGithubConfig(env, fetchImpl);
+      return jsonResponse({
+        config: result.config,
+        sha: result.sha,
+        path: result.path,
+        source: 'github',
+      });
+    } catch {
+      return jsonResponse(
+        { ok: false, error: 'Worker 讀取 GitHub 設定失敗。' },
+        { status: 502 },
+      );
+    }
   }
 
   if (method === 'PUT' && (pathname.endsWith('/config') || pathname.endsWith('/config.json'))) {
-    const body = await request.json().catch(() => ({}));
-    const config = isPlainObject(body) && isPlainObject(body.config) ? body.config : body;
-    let currentSha = trimText(isPlainObject(body) ? body.sha : '');
+    try {
+      const body = await request.json().catch(() => ({}));
+      const config = isPlainObject(body) && isPlainObject(body.config) ? body.config : body;
+      let currentSha = trimText(isPlainObject(body) ? body.sha : '');
 
-    if (!currentSha) {
-      try {
-        const current = await decodeGithubConfig(env, fetchImpl);
-        currentSha = current.sha || '';
-      } catch (error) {
-        if (!error || error.status !== 404) {
-          throw error;
+      if (!currentSha) {
+        try {
+          const current = await decodeGithubConfig(env, fetchImpl);
+          currentSha = current.sha || '';
+        } catch (error) {
+          if (!error || error.status !== 404) {
+            throw error;
+          }
         }
       }
-    }
 
-    const result = await saveGithubConfig(env, config, body && body.message, currentSha, fetchImpl);
-    return jsonResponse({
-      ok: true,
-      result,
-    });
+      const result = await saveGithubConfig(env, config, body && body.message, currentSha, fetchImpl);
+      return jsonResponse({
+        ok: true,
+        result,
+      });
+    } catch (error) {
+      const status = error && Number.isInteger(error.status) ? error.status : 502;
+      const message = status === 500 && error.message === 'Worker 尚未設定 GitHub Token，無法儲存公版。'
+        ? error.message
+        : 'Worker 儲存 GitHub 設定失敗。';
+      return jsonResponse({ ok: false, error: message }, { status });
+    }
   }
 
   return jsonResponse(
