@@ -1248,6 +1248,125 @@
     }
   }
 
+  function getPdfSlicePlan({
+    contentHeight,
+    contentToPdfRatio,
+    cursorY,
+    pageTop,
+    pageBottom,
+    safeBreaks,
+  }) {
+    const result = {};
+    const createSlices = () => [];
+    const createSlice = (offset, height, pageBreakBefore) => ({
+      offset,
+      height,
+      pageBreakBefore,
+    });
+    const totalHeight = Math.max(0, Math.floor(Number(contentHeight) || 0));
+    const ratio = Number(contentToPdfRatio);
+    const safeRatio = Number.isFinite(ratio) && ratio > 0 ? ratio : 1;
+    const top = Number(pageTop) || 0;
+    const bottom = Math.max(top, Number(pageBottom) || top);
+    const startY = Number(cursorY) || top;
+    const pageHeight = Math.max(1, Math.floor((bottom - top) / safeRatio));
+    const breaks = Array.isArray(safeBreaks)
+      ? safeBreaks
+        .map((value) => Math.floor(Number(value)))
+        .filter((value) => value > 0 && value < totalHeight)
+        .sort((a, b) => a - b)
+        .filter((value, index, values) => index === 0 || value !== values[index - 1])
+      : [];
+
+    if (!totalHeight) {
+      result.slices = createSlices();
+      result.cursorY = startY;
+      return result;
+    }
+
+    if (totalHeight <= pageHeight) {
+      const fitsCurrentPage = startY < bottom
+        && (startY <= top || startY + totalHeight * safeRatio <= bottom);
+      const pageBreakBefore = !fitsCurrentPage;
+      result.slices = createSlices();
+      result.slices.push(createSlice(0, totalHeight, pageBreakBefore));
+      result.cursorY = (pageBreakBefore ? top : startY) + totalHeight * safeRatio;
+      return result;
+    }
+
+    const currentPageHeight = startY > top
+      ? Math.floor(Math.max(0, (bottom - startY) / safeRatio))
+      : pageHeight;
+    let firstPageHeight = currentPageHeight;
+    const firstSafeBreak = breaks[0] || 0;
+    let firstPageBreak = false;
+    if (startY >= bottom || (startY > top
+      && (firstPageHeight < 1 || firstSafeBreak > firstPageHeight))) {
+      firstPageHeight = pageHeight;
+      firstPageBreak = true;
+    }
+
+    const slices = createSlices();
+    let offset = 0;
+    let currentY = startY;
+    let pageBreakBefore = firstPageBreak;
+
+    while (offset < totalHeight) {
+      const capacity = offset === 0 ? firstPageHeight : pageHeight;
+      const availableHeight = capacity > 0 ? capacity : pageHeight;
+      const maxOffset = Math.min(totalHeight, offset + availableHeight);
+      const safeBreak = breaks
+        .filter((value) => value > offset && value <= maxOffset)
+        .pop();
+      const nextOffset = safeBreak || maxOffset;
+      const height = Math.max(1, nextOffset - offset);
+
+      slices.push(createSlice(offset, height, pageBreakBefore));
+      offset += height;
+      currentY = (pageBreakBefore ? top : currentY) + height * safeRatio;
+      pageBreakBefore = true;
+    }
+
+    result.slices = slices;
+    result.cursorY = currentY;
+    return result;
+  }
+
+  function getDevicePdfBreakpoints(node, canvas) {
+    try {
+      if (!node || !canvas || typeof node.getBoundingClientRect !== 'function'
+        || typeof node.querySelectorAll !== 'function') {
+        return [];
+      }
+
+      const nodeRect = node.getBoundingClientRect();
+      const canvasWidth = Number(canvas.width);
+      const nodeWidth = Number(nodeRect && nodeRect.width);
+      if (!nodeRect || !Number.isFinite(canvasWidth) || canvasWidth <= 0
+        || !Number.isFinite(nodeWidth) || nodeWidth <= 0) {
+        return [];
+      }
+
+      const scale = getPdfCaptureScale(window.devicePixelRatio || 1);
+      const canvasHeight = Number(canvas.height);
+      const breakpoints = [];
+      node.querySelectorAll('.check-item').forEach((item) => {
+        if (!item || typeof item.getBoundingClientRect !== 'function') {
+          return;
+        }
+        const rect = item.getBoundingClientRect();
+        const bottom = Math.round((Number(rect.bottom) - Number(nodeRect.top)) * scale);
+        if (Number.isInteger(bottom) && bottom > 0 && bottom <= canvasHeight
+          && (breakpoints.length === 0 || bottom > breakpoints[breakpoints.length - 1])) {
+          breakpoints.push(bottom);
+        }
+      });
+      return breakpoints;
+    } catch (error) {
+      return [];
+    }
+  }
+
   function setExportMode(enabled) {
     document.body.classList.toggle('exporting', enabled);
   }
@@ -1295,55 +1414,88 @@
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
     const contentWidth = pageWidth - options.marginLeft - options.marginRight;
-    const availableHeight = pageHeight - options.marginTop - options.marginBottom;
-    const imgHeight = (canvas.height * contentWidth) / canvas.width;
-    const fullImage = createPdfImageAsset(canvas);
+    const safeBreaks = Array.isArray(options.safeBreaks) ? options.safeBreaks : [];
+    const contentToPdfRatio = contentWidth / canvas.width;
+    const plan = getPdfSlicePlan({
+      contentHeight: canvas.height,
+      contentToPdfRatio,
+      cursorY: options.cursorY,
+      pageTop: options.marginTop,
+      pageBottom: pageHeight - options.marginBottom,
+      safeBreaks: safeBreaks.length ? safeBreaks : [],
+    });
+    let currentY = options.cursorY;
 
-    if (options.cursorY + imgHeight <= pageHeight - options.marginBottom) {
-      pdf.addImage(fullImage.dataUrl, fullImage.format, options.marginLeft, options.cursorY, contentWidth, imgHeight);
-      return options.cursorY + imgHeight;
-    }
-
-    if (imgHeight <= availableHeight) {
-      if (options.cursorY > options.marginTop) {
-        pdf.addPage();
-        options.cursorY = options.marginTop;
-      }
-      pdf.addImage(fullImage.dataUrl, fullImage.format, options.marginLeft, options.cursorY, contentWidth, imgHeight);
-      return options.cursorY + imgHeight;
-    }
-
-    const sliceCanvasHeight = Math.max(1, Math.floor((canvas.width * availableHeight) / contentWidth));
-    let offset = 0;
-    let currentY = options.cursorY > options.marginTop ? options.marginTop : options.cursorY;
-
-    while (offset < canvas.height) {
-      if (currentY > options.marginTop) {
+    plan.slices.forEach((slice) => {
+      if (slice.pageBreakBefore) {
         pdf.addPage();
         currentY = options.marginTop;
       }
 
-      const sliceHeight = Math.min(sliceCanvasHeight, canvas.height - offset);
       const sliceCanvas = document.createElement('canvas');
       sliceCanvas.width = canvas.width;
-      sliceCanvas.height = sliceHeight;
+      sliceCanvas.height = slice.height;
       const sliceContext = sliceCanvas.getContext('2d');
-      sliceContext.drawImage(canvas, 0, offset, canvas.width, sliceHeight, 0, 0, canvas.width, sliceHeight);
+      sliceContext.drawImage(canvas, 0, slice.offset, canvas.width, slice.height, 0, 0, canvas.width, slice.height);
 
-      const sliceImageHeight = (sliceHeight * contentWidth) / canvas.width;
+      const sliceImageHeight = (slice.height * contentWidth) / canvas.width;
       const sliceImage = createPdfImageAsset(sliceCanvas);
       pdf.addImage(sliceImage.dataUrl, sliceImage.format, options.marginLeft, currentY, contentWidth, sliceImageHeight);
-
-      offset += sliceHeight;
       currentY += sliceImageHeight;
-
-      if (offset < canvas.height) {
-        pdf.addPage();
-        currentY = options.marginTop;
-      }
-    }
+    });
 
     return currentY;
+  }
+
+  async function createPdfBlob(pdf) {
+    const blob = await pdf.output('blob');
+    if (!blob || blob.type !== 'application/pdf') {
+      throw new Error('PDF Blob MIME 類型不正確');
+    }
+
+    let header = '';
+    if (typeof blob.arrayBuffer === 'function' && typeof TextDecoder === 'function') {
+      const bytes = new Uint8Array(await blob.arrayBuffer()).slice(0, 5);
+      header = new TextDecoder().decode(bytes);
+    } else if (typeof blob.text === 'function') {
+      header = (await blob.text()).slice(0, 5);
+    }
+    if (header !== '%PDF-') {
+      throw new Error('PDF 檔案標頭不正確');
+    }
+    return blob;
+  }
+
+  function downloadPdfBlob(blob, filename) {
+    const urlApi = root.URL;
+    if (!urlApi || typeof urlApi.createObjectURL !== 'function'
+      || typeof urlApi.revokeObjectURL !== 'function'
+      || typeof document === 'undefined' || typeof document.createElement !== 'function') {
+      throw new Error('目前環境不支援 PDF 下載');
+    }
+
+    const objectUrl = urlApi.createObjectURL(blob);
+    let revokeDeferred = false;
+    try {
+      const link = document.createElement('a');
+      if (!link) {
+        throw new Error('無法建立 PDF 下載連結');
+      }
+      if (typeof link.click !== 'function') {
+        throw new Error('目前環境不支援 PDF 下載');
+      }
+      link.href = objectUrl;
+      link.download = filename;
+      link.click();
+      if (typeof root.setTimeout === 'function') {
+        root.setTimeout(() => urlApi.revokeObjectURL(objectUrl), 0);
+        revokeDeferred = true;
+      }
+    } finally {
+      if (!revokeDeferred) {
+        urlApi.revokeObjectURL(objectUrl);
+      }
+    }
   }
 
   async function generatePDF() {
@@ -1394,6 +1546,10 @@
           marginLeft,
           marginRight,
           pageHeight,
+          safeBreaks: node.classList && typeof node.classList.contains === 'function'
+            && node.classList.contains('device-card')
+            ? getDevicePdfBreakpoints(node, canvas)
+            : [],
         });
         cursorY += 4;
         if (cursorY > pageHeight - marginBottom) {
@@ -1402,7 +1558,14 @@
         }
       }
 
-      pdf.save(buildPdfFilename(checkDate, projectName));
+      const filename = buildPdfFilename(checkDate, projectName);
+      const blob = await createPdfBlob(pdf);
+      downloadPdfBlob(blob, filename);
+    } catch (error) {
+      if (typeof console !== 'undefined' && typeof console.error === 'function') {
+        console.error('PDF 匯出失敗', error);
+      }
+      window.alert('PDF 匯出失敗，請稍後再試');
     } finally {
       setExportMode(false);
       if (exportTimestampBackup !== null) {
@@ -1506,6 +1669,8 @@
     createInitialState,
     createPdfDocument,
     createPdfImageAsset,
+    createPdfBlob,
+    downloadPdfBlob,
     formatDateInputValue,
     formatDateTimeValue,
     generatePDF,
@@ -1513,6 +1678,8 @@
     loadState,
     normalizeFilenamePart,
     getPdfCaptureScale,
+    getPdfSlicePlan,
+    getDevicePdfBreakpoints,
     saveState,
     clearForm,
     setSignatureMode,
