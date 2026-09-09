@@ -529,6 +529,10 @@ button.small {
   resize: vertical;
 }
 
+.export-note-text {
+  display: none;
+}
+
 .field input:focus,
 .field textarea:focus,
 .field select:focus,
@@ -990,6 +994,28 @@ body.signature-mode .signature-canvas {
 .exporting .device-item {
   background: #fff !important;
   box-shadow: none !important;
+}
+
+.exporting #overall-note {
+  display: none !important;
+}
+
+.exporting .export-note-text {
+  display: block;
+  min-height: 120px;
+  padding: 0.8rem 0.95rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: #fff;
+  color: var(--text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.exporting .signature-summary-grid,
+.exporting .signature-grid {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 @media (max-width: 860px) {

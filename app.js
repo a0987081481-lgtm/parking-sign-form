@@ -572,12 +572,19 @@
     textarea.value = state.note || '';
     textarea.dataset.noteField = 'overallNote';
 
+    const exportText = document.createElement('div');
+    exportText.id = 'overall-note-export';
+    exportText.className = 'export-note-text';
+    exportText.setAttribute('aria-hidden', 'true');
+    exportText.textContent = state.note || '（未填寫）';
+
     const help = document.createElement('p');
     help.className = 'field-help';
     help.textContent = '此欄位會一起輸出到 PDF。';
 
     field.appendChild(label);
     field.appendChild(textarea);
+    field.appendChild(exportText);
     field.appendChild(help);
     container.appendChild(field);
   }
@@ -1333,9 +1340,13 @@
   }
 
   function getDevicePdfBreakpoints(node, canvas) {
+    return getPdfBlockBreakpoints(node, canvas, '.check-item');
+  }
+
+  function getPdfBlockBreakpoints(node, canvas, selector) {
     try {
       if (!node || !canvas || typeof node.getBoundingClientRect !== 'function'
-        || typeof node.querySelectorAll !== 'function') {
+        || typeof node.querySelectorAll !== 'function' || !selector) {
         return [];
       }
 
@@ -1350,7 +1361,7 @@
       const scale = getPdfCaptureScale(window.devicePixelRatio || 1);
       const canvasHeight = Number(canvas.height);
       const breakpoints = [];
-      node.querySelectorAll('.check-item').forEach((item) => {
+      node.querySelectorAll(selector).forEach((item) => {
         if (!item || typeof item.getBoundingClientRect !== 'function') {
           return;
         }
@@ -1369,6 +1380,10 @@
 
   function setExportMode(enabled) {
     document.body.classList.toggle('exporting', enabled);
+    const exportNote = document.getElementById('overall-note-export');
+    if (exportNote) {
+      exportNote.textContent = enabled ? (state.note || '（未填寫）') : '';
+    }
   }
 
   function updateExportTimestampDisplay(text) {
@@ -1549,6 +1564,10 @@
           safeBreaks: node.classList && typeof node.classList.contains === 'function'
             && node.classList.contains('device-card')
             ? getDevicePdfBreakpoints(node, canvas)
+            : node.classList && typeof node.classList.contains === 'function'
+              && node.classList.contains('section-card')
+              && node.id === 'signature-section'
+              ? getPdfBlockBreakpoints(node, canvas, '.signature-summary-card, .signature-card')
             : [],
         });
         cursorY += 4;
@@ -1679,6 +1698,7 @@
     normalizeFilenamePart,
     getPdfCaptureScale,
     getPdfSlicePlan,
+    getPdfBlockBreakpoints,
     getDevicePdfBreakpoints,
     saveState,
     clearForm,
