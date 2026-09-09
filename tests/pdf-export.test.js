@@ -214,6 +214,26 @@ test('getDevicePdfBreakpoints returns valid increasing canvas positions', () => 
   assert.deepEqual([...app.getDevicePdfBreakpoints(null, { width: 400, height: 250 })], []);
 });
 
+test('getPdfBlockBreakpoints supports signature cards as safe page boundaries', () => {
+  const app = loadApp({ devicePixelRatio: 2 });
+  const cards = [
+    { getBoundingClientRect: () => ({ bottom: 220 }) },
+    { getBoundingClientRect: () => ({ bottom: 360 }) },
+  ];
+  const node = {
+    getBoundingClientRect: () => ({ top: 100, width: 400 }),
+    querySelectorAll: (selector) => {
+      assert.equal(selector, '.signature-summary-card, .signature-card');
+      return cards;
+    },
+  };
+
+  assert.deepEqual(
+    [...app.getPdfBlockBreakpoints(node, { width: 400, height: 600 }, '.signature-summary-card, .signature-card')],
+    [150, 325],
+  );
+});
+
 test('downloadPdfBlob revokes the object URL when clicking fails', () => {
   let revokedUrl = null;
   const app = loadApp({
